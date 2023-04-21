@@ -36,104 +36,107 @@ namespace NetUtil.Servers
 			while (true)
 			{
 				stoppingToken.ThrowIfCancellationRequested();
-				using (Socket client = await bindSocket.AcceptAsync(stoppingToken))
+				Socket client = await bindSocket.AcceptAsync(stoppingToken);
+
+				_ = Task.Run(async () =>
 				{
-					await Task.Run(async () =>
+					int connID = IdGenerator.Next();
+					string source = string.Empty;
+					string dest = string.Empty;
+
+					if (bindSocket.LocalEndPoint is not null)
+						source = bindSocket.LocalEndPoint.ToString() ?? string.Empty;
+
+					try
 					{
-						int connID = IdGenerator.Next();
-						string source = string.Empty;
-						string dest = string.Empty;
-
-						if (bindSocket.LocalEndPoint is not null)
-							source = bindSocket.LocalEndPoint.ToString() ?? string.Empty;
-
-						try
+						using (Socket destSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
 						{
-							using (Socket destSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-							{
-								destSocket.Connect(config.Destination);
-								if (destSocket.RemoteEndPoint is not null)
-									dest = destSocket.RemoteEndPoint.ToString() ?? string.Empty;
+							destSocket.Connect(config.Destination);
+							if (destSocket.RemoteEndPoint is not null)
+								dest = destSocket.RemoteEndPoint.ToString() ?? string.Empty;
 
-								if (eventChannel is not null)
-								{
-									await eventChannel.Writer.WriteAsync(new TcpEvent
-									{
-										Type = TcpEventType.Connected,
-										Source = source,
-										Destination = dest,
-										ConnectionID = connID,
-										TimeStampUtc = DateTime.UtcNow,
-										Data = null
-									});
-								}
-
-								var outboundTask = Task.Run(async () =>
-								{
-									byte[] buffer = new byte[4096];
-									while (true)
-									{
-										stoppingToken.ThrowIfCancellationRequested();
-										var readLen = await client.ReceiveAsync(buffer, SocketFlags.None, stoppingToken);
-										if (readLen > 0)
-										{
-											if (config.IncludeDataEvents)
-												await WriteOutboundData(eventChannel, source, dest, connID, buffer, readLen);
-
-											var writeLen = 0;
-											while (readLen > 0)
-											{
-												var sent = destSocket.Send(buffer, writeLen, readLen, SocketFlags.None);
-												readLen -= sent;
-												writeLen += sent;
-											}
-										}
-									}
-								}, stoppingToken);
-
-								var inboundTask = Task.Run(async () =>
-								{
-									byte[] buffer = new byte[4096];
-									while (true)
-									{
-										stoppingToken.ThrowIfCancellationRequested();
-										var readLen = await destSocket.ReceiveAsync(buffer, SocketFlags.None, stoppingToken);
-										if (readLen > 0)
-										{
-											if (config.IncludeDataEvents)
-												await WriteInboundData(eventChannel, source, dest, connID, buffer, readLen);
-
-											var writeLen = 0;
-											while (readLen > 0)
-											{
-												var sent = client.Send(buffer, writeLen, readLen, SocketFlags.None);
-												readLen -= sent;
-												writeLen += sent;
-											}
-										}
-									}
-								}, stoppingToken);
-
-								await Task.WhenAll(outboundTask, inboundTask);
-							}
-						}
-						catch (Exception ex)
-                        {
 							if (eventChannel is not null)
-                            {
+							{
 								await eventChannel.Writer.WriteAsync(new TcpEvent
 								{
-									Type = TcpEventType.Error,
+									Type = TcpEventType.Connected,
 									Source = source,
 									Destination = dest,
 									ConnectionID = connID,
 									TimeStampUtc = DateTime.UtcNow,
-									Data = Encoding.UTF8.GetBytes(ex.Message)
+									Data = null
 								});
-                            }
-                        }
-					}, stoppingToken);
-				}
+							}
+
+							var outboundTask = Task.Run(async () =>
+							{
+								byte[] buffer = new byte[4096];
+								while (true)
+								{
+									stoppingToken.ThrowIfCancellationRequested();
+									var readLen = await client.ReceiveAsync(buffer, SocketFlags.None, stoppingToken);
+									if (readLen > 0)
+									{
+										if (config.IncludeDataEvents)
+											await WriteOutboundData(eventChannel, source, dest, connID, buffer, readLen);
+
+										var writeLen = 0;
+										while (readLen > 0)
+										{
+											var sent = destSocket.Send(buffer, writeLen, readLen, SocketFlags.None);
+											readLen -= sent;
+											writeLen += sent;
+										}
+									}
+								}
+							}, stoppingToken);
+
+							var inboundTask = Task.Run(async () =>
+							{
+								byte[] buffer = new byte[4096];
+								while (true)
+								{
+									stoppingToken.ThrowIfCancellationRequested();
+									var readLen = await destSocket.ReceiveAsync(buffer, SocketFlags.None, stoppingToken);
+									if (readLen > 0)
+									{
+										if (config.IncludeDataEvents)
+											await WriteInboundData(eventChannel, source, dest, connID, buffer, readLen);
+
+										var writeLen = 0;
+										while (readLen > 0)
+										{
+											var sent = client.Send(buffer, writeLen, readLen, SocketFlags.None);
+											readLen -= sent;
+											writeLen += sent;
+										}
+									}
+								}
+							}, stoppingToken);
+
+							await Task.WhenAll(outboundTask, inboundTask);
+						}
+					}
+					catch (Exception ex)
+					{
+						if (eventChannel is not null)
+						{
+							await eventChannel.Writer.WriteAsync(new TcpEvent
+							{
+								Type = TcpEventType.Error,
+								Source = source,
+								Destination = dest,
+								ConnectionID = connID,
+								TimeStampUtc = DateTime.UtcNow,
+								Data = Encoding.UTF8.GetBytes(ex.Message)
+							});
+						}
+					}
+					finally
+                    {
+						try { client.Dispose(); } catch { }
+                    }
+				}, stoppingToken);
 			}
 		}
 

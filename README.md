@@ -17,4 +17,7 @@ Listens on a specified port and forwards data to destination address and vice-ve
 - `-c` = Display captured data in console
 - `-f` = Data format (`Binary` | `AsciiText` | `Utf8Text`) - for rendering in console.
 
-Logging to file not currently implemented, but is planned.
+### TODO
+
+- Logging to file not currently implemented, but is planned.
+- Probably need to add connection timeout as proxy task for each connection stays running indefinitely
