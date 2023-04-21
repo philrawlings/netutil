@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "NetUtil": {
+      "commandName": "Project"
+    },
+    "Dashy Proxy": {
+      "commandName": "Project",
+      "commandLineArgs": "proxy -b 0.0.0.0:9034 -d 192.168.1.230:8080"
+    },
+    "LV Proxy": {
+      "commandName": "Project",
+      "commandLineArgs": "proxy -b 0.0.0.0:6341 -d 127.0.0.1:6340 -c -f AsciiText"
+    }
+  }
+}
