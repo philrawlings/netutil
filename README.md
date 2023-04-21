@@ -1,6 +1,6 @@
 # netutil - Network utilities for dotnet
 
-- Implemented as a console application but with public classes.
+- Implemented as a console application but with public classes for use within another application.
 
 ## Features
 
