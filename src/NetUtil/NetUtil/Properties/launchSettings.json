@@ -5,11 +5,15 @@
     },
     "Dashy Proxy": {
       "commandName": "Project",
-      "commandLineArgs": "proxy -b 0.0.0.0:9034 -d 192.168.1.230:8080"
+      "commandLineArgs": "proxy -b 0.0.0.0:9034 -c 192.168.1.230:8080"
     },
     "LV Proxy": {
       "commandName": "Project",
-      "commandLineArgs": "proxy -b 0.0.0.0:6341 -d 127.0.0.1:6340 -c -f AsciiText"
+      "commandLineArgs": "proxy -b 0.0.0.0:6341 -c 127.0.0.1:6340 -w -f AsciiText"
+    },
+    "LV Receive": {
+      "commandName": "Project",
+      "commandLineArgs": "receive -c 127.0.0.1:6340 -w -f AsciiText"
     }
   }
 }

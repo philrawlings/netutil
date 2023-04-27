@@ -12,7 +12,8 @@ using System.Threading.Channels;
 
 var result = Parser.Default.ParseArguments(args, new[]
             {
-                typeof(Options.Proxy)
+                typeof(Options.Proxy),
+                typeof(Options.Receive)
             });
 
 await result.WithParsedAsync<Options.Proxy>(async opts =>
@@ -25,8 +26,8 @@ await result.WithParsedAsync<Options.Proxy>(async opts =>
 
         var config = new TcpProxyServerConfig
         {
-            Bind = IPEndPoint.Parse(opts.Bind),
-            Destination = IPEndPoint.Parse(opts.Destination),
+            Bind = IPEndPoint.Parse(opts.BindEndPoint),
+            Destination = IPEndPoint.Parse(opts.ConnectEndPoint),
             IncludeDataEvents = opts.WriteDataToConsole
         };
 
@@ -41,6 +42,78 @@ await result.WithParsedAsync<Options.Proxy>(async opts =>
         var serverTask = Task.Run(async () =>
         {
             using (var server = new TcpProxyServer(config, eventChannel))
+            {
+                await server.RunAsync(cts.Token);
+            }
+        });
+
+        var consoleTask = Task.Run(async () =>
+        {
+            while (true)
+            {
+                var tcpEvent = await eventChannel.Reader.ReadAsync(cts.Token);
+                switch (tcpEvent.Type)
+                {
+                    case TcpEventType.Connected:
+                        ConsoleWriteLine($"{tcpEvent.TimeStampUtc.ToUtcIso8601String()}, {tcpEvent.Source} -> {tcpEvent.Destination}, Conn ID: {tcpEvent.ConnectionID}, Connected", ConsoleColor.Green);
+                        break;
+                    case TcpEventType.OutboundData:
+                        ConsoleWrite($"{tcpEvent.TimeStampUtc.ToUtcIso8601String()}, {tcpEvent.Source} -> {tcpEvent.Destination}, Conn ID: {tcpEvent.ConnectionID}, Out Data: ", ConsoleColor.Cyan);
+                        ConsoleWriteData(tcpEvent.Data, opts.Format);
+                        break;
+                    case TcpEventType.InboundData:
+                        ConsoleWrite($"{tcpEvent.TimeStampUtc.ToUtcIso8601String()}, {tcpEvent.Source} -> {tcpEvent.Destination}, Conn ID: {tcpEvent.ConnectionID}, In Data:  ", ConsoleColor.Yellow);
+                        ConsoleWriteData(tcpEvent.Data, opts.Format);
+                        break;
+                    case TcpEventType.Error:
+                        ConsoleWriteLine($"{tcpEvent.TimeStampUtc.ToUtcIso8601String()}, {tcpEvent.Source} -> {tcpEvent.Destination}, Conn ID: {tcpEvent.ConnectionID}, Error: {Encoding.UTF8.GetString(tcpEvent.Data ?? Array.Empty<byte>())}", ConsoleColor.Red);
+                        break;
+                }
+            }
+        });
+
+        await Task.WhenAll(serverTask, consoleTask);
+    }
+    catch (OperationCanceledException)
+    {
+        Console.WriteLine();
+        ConsoleWriteLine("Proxy server stopped.", ConsoleColor.Green);
+        Environment.ExitCode = 0;
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine();
+        ConsoleWriteErrorLine("An error occurred:", ConsoleColor.Red);
+        Console.Error.WriteLine(ex.Message);
+        Environment.ExitCode = 1;
+    }
+});
+
+await result.WithParsedAsync<Options.Receive>(async opts =>
+{
+    try
+    {
+        string version = GetVersion();
+        Console.WriteLine($"netutil [Version {version}] - Proxy Server");
+        Console.WriteLine();
+
+        var config = new TcpClientConfig
+        {
+            Connect = IPEndPoint.Parse(opts.ConnectEndPoint),
+            IncludeDataEvents = opts.WriteDataToConsole
+        };
+
+        var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (s, e) =>
+        {
+            cts.Cancel();
+            e.Cancel = true;
+        };
+
+        var eventChannel = Channel.CreateUnbounded<TcpEvent>();
+        var serverTask = Task.Run(async () =>
+        {
+            using (var server = new TcpClient(config, eventChannel))
             {
                 await server.RunAsync(cts.Token);
             }
