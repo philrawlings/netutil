@@ -11,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    public class TcpProxyServer : IDisposable
+    public class TcpEchoServer : IDisposable
     {
-        private readonly TcpProxyServerConfig config;
+        private readonly TcpEchoServerConfig config;
 		private readonly Socket bindSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 		private readonly Channel<TcpEvent>? externalEventChannel;
 		private readonly Channel<TcpEvent>? logFileEventChannel;
@@ -22,7 +22,7 @@ namespace NetUtil.Servers
 
 		bool disposed = false;
 
-        public TcpProxyServer(TcpProxyServerConfig config, Channel<TcpEvent>? eventChannel)
+        public TcpEchoServer(TcpEchoServerConfig config, Channel<TcpEvent>? eventChannel)
         {
             this.config = config;
 			this.externalEventChannel = eventChannel;
@@ -32,7 +32,7 @@ namespace NetUtil.Servers
 			}
 		}
 
-		public TcpProxyServer(TcpProxyServerConfig config) : this(config, null)
+		public TcpEchoServer(TcpEchoServerConfig config) : this(config, null)
 		{
 		}
 
@@ -77,61 +77,26 @@ namespace NetUtil.Servers
 
 					try
 					{
-						using (Socket destSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+						if (client.RemoteEndPoint is not null)
+							dest = client.RemoteEndPoint.ToString() ?? string.Empty;
+
+						await WriteEvent(TcpEventType.Connected, source, dest, connID, null, 0);
+
+						byte[] buffer = new byte[4096];
+						while (true)
 						{
-							destSocket.Connect(config.Destination);
-							if (destSocket.RemoteEndPoint is not null)
-								dest = destSocket.RemoteEndPoint.ToString() ?? string.Empty;
-
-							await WriteEvent(TcpEventType.Connected, source, dest, connID, null, 0);
-
-							using (var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken))
+							var readLen = await client.ReceiveAsync(buffer, SocketFlags.None, stoppingToken);
+							if (readLen > 0)
 							{
-								var outboundTask = Task.Run(async () =>
+								await WriteEvent(TcpEventType.OutboundData, source, dest, connID, buffer, readLen);
+
+								var writeLen = 0;
+								while (readLen > 0)
 								{
-									byte[] buffer = new byte[4096];
-									while (true)
-									{
-										var readLen = await client.ReceiveAsync(buffer, SocketFlags.None, cts.Token);
-										if (readLen > 0)
-										{
-											await WriteEvent(TcpEventType.OutboundData, source, dest, connID, buffer, readLen);
-
-											var writeLen = 0;
-											while (readLen > 0)
-											{
-												var sent = destSocket.Send(buffer, writeLen, readLen, SocketFlags.None);
-												readLen -= sent;
-												writeLen += sent;
-											}
-										}
-									}
-								}, stoppingToken);
-
-								var inboundTask = Task.Run(async () =>
-								{
-									byte[] buffer = new byte[4096];
-									while (true)
-									{
-										var readLen = await destSocket.ReceiveAsync(buffer, SocketFlags.None, cts.Token);
-										if (readLen > 0)
-										{
-											await WriteEvent(TcpEventType.InboundData, source, dest, connID, buffer, readLen);
-
-											var writeLen = 0;
-											while (readLen > 0)
-											{
-												var sent = client.Send(buffer, writeLen, readLen, SocketFlags.None);
-												readLen -= sent;
-												writeLen += sent;
-											}
-										}
-									}
-								}, stoppingToken);
-
-								await Task.WhenAny(outboundTask, inboundTask);
-								cts.Cancel();
-								await Task.WhenAll(outboundTask, inboundTask);
+									var sent = client.Send(buffer, writeLen, readLen, SocketFlags.None);
+									readLen -= sent;
+									writeLen += sent;
+								}
 							}
 						}
 					}
@@ -210,7 +175,7 @@ namespace NetUtil.Servers
 			GC.SuppressFinalize(this);
 		}
 
-		~TcpProxyServer()
+		~TcpEchoServer()
 		{
 			Dispose(false);
 		}

@@ -12,6 +12,8 @@ namespace NetUtil.Servers
     {
         public IPEndPoint Bind { get; set; }
         public IPEndPoint Destination { get; set; }
-        public bool IncludeDataEvents { get; set; } = false;
+        public DataFormat Format { get; set; }
+        public string EventLogFilePath { get; set; }
+        public bool SendDataEventsToEventChannel { get; set; } = false;
     }
 }

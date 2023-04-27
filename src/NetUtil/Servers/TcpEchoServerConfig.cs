@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    public class TcpClientConfig
+    public class TcpEchoServerConfig
     {
-        public IPEndPoint Connect { get; set; }
+        public IPEndPoint Bind { get; set; }
         public DataFormat Format { get; set; }
         public string EventLogFilePath { get; set; }
         public bool SendDataEventsToEventChannel { get; set; } = false;
