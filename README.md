@@ -10,7 +10,7 @@
 
 ## Echo Server
 
-Listens on a specified port and echoes all data to client. Allows multiple client connections.
+Receives data sent by the client and echoes the same data back to the to client. Allows multiple client connections.
 Currently only supports TCP, but future `-p` `--protocol` switch will allow the use of UDP.
 
 Example usage from command line: `netutil echo-server -b 0.0.0.0:6341 -w -f AsciiText`
@@ -21,7 +21,7 @@ Example usage from command line: `netutil echo-server -b 0.0.0.0:6341 -w -f Asci
 
 ## Proxy Server
 
-Listens on a specified port and forwards data to destination address and vice-versa (bi-directional). Allows multiple client connections.
+Receives data sent by the client and forwards to another server and vice-versa (bi-directional). Allows multiple client connections.
 Currently only supports TCP, but future `-p` `--protocol` switch will allow the use of UDP.
 
 Example usage from command line: `netutil proxy-server -b 0.0.0.0:6341 -c 127.0.0.1:6340 -w -f AsciiText`
