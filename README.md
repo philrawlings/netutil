@@ -8,22 +8,26 @@
 - [ ] UDP Proxy
 - [x] TCP Receiver
 
-## TCP Proxy Server
+## TCP Proxy
 
 Listens on a specified port and forwards data to destination address and vice-versa (bi-directional).
 
-- Example proxy usage from command line: `netutil proxy -b 0.0.0.0:6341 -c 127.0.0.1:6340 -w -f AsciiText`
+Example usage from command line: `netutil proxy -b 0.0.0.0:6341 -c 127.0.0.1:6340 -w -f AsciiText`
+
 - `-b` = Bind to end point
 - `-c` = Connect to end point
 - `-w` = Write data to console
 - `-f` = Data format (`Binary` | `AsciiText` | `Utf8Text`) - for rendering in console.
 
-- Example receive usage from command line: `netutil receive -c 127.0.0.1:6340 -w -f AsciiText`
+## TCP Receiver
+
+Example usage from command line: `netutil receive -c 127.0.0.1:6340 -w -f AsciiText`
+
 - `-c` = Connect to end point
 - `-w` = Write data to console
 - `-f` = Data format (`Binary` | `AsciiText` | `Utf8Text`) - for rendering in console.
 
-### TODO
+# TODO
 
 - Logging to file not currently implemented, but is planned.
 - Probably need to add connection timeout as internal tasks stay running indefinitely
