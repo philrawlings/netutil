@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    internal class TcpProxyServerConfig
+    public class TcpProxyServerConfig
     {
         public IPEndPoint Bind { get; set; }
         public IPEndPoint Destination { get; set; }

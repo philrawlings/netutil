@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    internal class TcpClientConfig
+    public class TcpClientConfig
     {
         public IPEndPoint Connect { get; set; }
         public bool IncludeDataEvents { get; set; } = false;

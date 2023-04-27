@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    internal class TcpProxyServer : IDisposable
+    public class TcpProxyServer : IDisposable
     {
         private readonly TcpProxyServerConfig config;
 		private readonly Socket bindSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

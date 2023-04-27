@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace NetUtil.Servers
 {
-    internal class TcpClient : IDisposable
+    public class TcpClient : IDisposable
     {
         private readonly TcpClientConfig config;
 		private readonly Socket bindSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
