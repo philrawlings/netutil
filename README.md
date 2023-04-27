@@ -13,7 +13,7 @@
 Receives data sent by the client and echoes the same data back to the to client. Allows multiple client connections.
 Currently only supports TCP, but future `-p` `--protocol` switch will allow the use of UDP.
 
-Example usage from command line: `netutil echo-server -b 0.0.0.0:6341 -w -f AsciiText`
+Example usage from command line: `netutil echo-server -b 0.0.0.0:6340 -w -f AsciiText`
 
 - `-b` = Bind to end point
 - `-w` = Write data to console
